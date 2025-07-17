@@ -30,41 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const verifyToken = async (token: string): Promise<User | null> => {
-    try {
-      // Try to call your backend to verify the token
-      const response = await fetch('http://localhost:8081/api/auth/verify', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Return user data from your backend
-        return {
-          id: data.id || data.user?.id || 1,
-          username: data.username || data.user?.username || '',
-          email: data.email || data.user?.email || '',
-          role: data.role || data.user?.role || 'USER'
-        };
-      }
-    } catch (error) {
-      console.log('Token verification endpoint not available, checking stored user data');
-    }
-
-    // Fallback: If verification endpoint doesn't exist, check if we have stored user data
+    // Since you don't have /api/auth/verify endpoint, we'll use stored user data
     try {
       const storedUser = Cookies.get('user-data');
       if (storedUser) {
-        return JSON.parse(storedUser);
+        const userData = JSON.parse(storedUser);
+        console.log('Using stored user data:', userData);
+        return userData;
       }
     } catch (error) {
       console.error('Error parsing stored user data:', error);
     }
 
+    // If no stored user data, the token is invalid
+    console.log('No stored user data found, token may be invalid');
     return null;
   };
 
@@ -87,15 +66,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Debug: Log response details
       console.log('Response status:', response.status);
       console.log('Response headers:', response.headers);
+      console.log('Response URL:', response.url);
 
       // Check if response has content
       const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+      
       if (!contentType || !contentType.includes('application/json')) {
         const textResponse = await response.text();
         console.error('Non-JSON response:', textResponse);
+        console.error('Response length:', textResponse.length);
+        
+        if (textResponse.length === 0) {
+          return { 
+            success: false, 
+            message: `API returned empty response. Please check if your backend server is running at http://localhost:8081 and the endpoint /api/auth/login exists.` 
+          };
+        }
+        
         return { 
           success: false, 
-          message: `Server error: Expected JSON response but got ${contentType}. Check if your API is running at http://localhost:8081/api/auth/login` 
+          message: `Server error: Expected JSON response but got ${contentType || 'unknown content type'}. Response: "${textResponse.substring(0, 100)}${textResponse.length > 100 ? '...' : ''}"` 
         };
       }
 
@@ -122,18 +113,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!response.ok) {
+        // Handle specific status codes
+        if (response.status === 401) {
+          return { 
+            success: false, 
+            message: 'Username or password is not correct, please try again' 
+          };
+        }
+        
         return { 
           success: false, 
-          message: data.message || `Server error (${response.status}): ${data.error || 'Invalid username or password'}` 
+          message: data.message || `Server error (${response.status}): ${data.error || 'Login failed'}` 
         };
       }
 
       // Log the successful response structure for debugging
       console.log('Login response data:', data);
 
-      // Assuming your API returns a token and user data
-      // Adjust this based on your actual API response structure
-      const { token, user: userData } = data;
+      // Extract data based on your actual API response structure
+      const { token, username: responseUsername, role } = data;
 
       if (!token) {
         console.error('No token in response:', data);
@@ -147,12 +145,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sameSite: 'strict'
       });
 
-      // Set user state - adjust based on your API response structure
       const userInfo = {
-        id: userData?.id || 1,
-        username: userData?.username || username,
-        email: userData?.email || '',
-        role: userData?.role || 'USER'
+        id: 1, // You can add an ID field to your API response if needed
+        username: responseUsername,
+        email: '', // You can add email to your API response if needed
+        role: role
       };
 
       // Store user data in cookie as fallback for token verification
@@ -168,11 +165,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Login error:', error);
       
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        return { 
-          success: false, 
-          message: 'Cannot connect to server. Please ensure your API is running at http://localhost:8081/api/auth/login' 
-        };
+      if (error instanceof TypeError) {
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          return { 
+            success: false, 
+            message: 'Cannot connect to server. Please check:\n• Backend server is running at http://localhost:8081\n• No firewall blocking the connection\n• CORS is properly configured' 
+          };
+        }
+        if (error.message.includes('NetworkError') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+          return { 
+            success: false, 
+            message: 'Connection refused. Please ensure your backend server is running on port 8081' 
+          };
+        }
       }
       
       return { 

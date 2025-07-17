@@ -8,7 +8,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRole="ADMIN">
       <div className="flex h-screen bg-gray-100">
         <SideBar />
         <div className="flex-1 flex flex-col overflow-hidden">

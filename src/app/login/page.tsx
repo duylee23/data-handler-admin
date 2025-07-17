@@ -76,11 +76,19 @@ export default function LoginPage() {
             />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            Admin Sign In
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Data Download Tool Admin Panel
           </p>
+          <div className="mt-2 text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              ADMIN Access Required
+            </span>
+          </div>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -148,7 +156,30 @@ export default function LoginPage() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-red-800">{error}</p>
+                  <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
+                  {error.includes('server') && (
+                    <button
+                      onClick={() => {
+                        fetch('http://localhost:8081/api/auth/login', { method: 'GET' })
+                          .then(res => {
+                            console.log('API Test - Status:', res.status);
+                            console.log('API Test - Headers:', res.headers);
+                            return res.text();
+                          })
+                          .then(text => {
+                            console.log('API Test - Response:', text);
+                            alert(`API Test Result:\nStatus: ${text.length > 0 ? 'Responding' : 'Empty response'}\nCheck console for details`);
+                          })
+                          .catch(err => {
+                            console.error('API Test - Error:', err);
+                            alert(`API Test Failed: ${err.message}`);
+                          });
+                      }}
+                      className="mt-2 text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded"
+                    >
+                      Test API Connection
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -171,15 +202,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <div className="text-center">
-            <div className="text-sm text-gray-600">
-              Demo credentials:
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              <p>Username: admin</p>
-              <p>Password: admin123</p>
-            </div>
-          </div>
         </form>
       </div>
     </div>
