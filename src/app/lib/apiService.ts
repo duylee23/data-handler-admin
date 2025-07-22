@@ -14,7 +14,6 @@ interface UploadScriptResponse {
 
 class ApiService {
   private baseUrl = '';
-
   // Get auth token from cookies
   private getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
