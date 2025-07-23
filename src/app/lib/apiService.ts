@@ -302,7 +302,79 @@ class ApiService {
       };
     }
   }
+
+
+
+  //GROUP API
+  // async getGroups(): Promise<{success: boolean, data?: any[], message?: string, count?:number}> {
+  //   try {
+  //     const response = await fetch(`${this.baseUrl}/api/group/list`, {
+  //       method: 'GET',
+  //       headers: this.getHeaders(),
+  //     });
+  
+  //     if(!response.ok){
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
+  //     const result = await response.json();
+  //     if(result.status === 'success'){
+  //       return {
+  //         success: true,
+  //         data: result.data,
+  //         count: result.count
+  //       };
+  //     } else {
+  //       return {
+  //         success: false,
+  //         message: 'Failed to fetch groups'
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching groups:', error);
+  //     return {
+  //       success: false,
+  //       message: error instanceof Error ? error.message : 'Failed to fetch groups'
+  //     }
+  //   }
+  // }
+
+
+  //PROJECT API 
+  async getProjects(): Promise<{success: boolean, data?: any[], message?: string, count?:number}> {
+    try{
+      const res = await fetch (`${this.baseUrl}/api/project/list`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      if(!res.ok){
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+      const result = await res.json();
+      if(result.status === 'success') {
+        return {
+          success: true,
+          data: result.data,
+          count: result.count
+        }
+      } else {
+        return { 
+          success: false,
+          message: 'Failed to fetch projects'
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch projects'
+      }
+    }
+  }
+
 }
+
+
+
 
 export const apiService = new ApiService();
 export type { UploadScriptRequest, UploadScriptResponse }; 

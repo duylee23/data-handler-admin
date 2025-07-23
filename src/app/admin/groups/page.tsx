@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-
+import {apiService} from '../../lib/apiService'
 interface ScriptOrder {
   script: string;
   order: number;
@@ -21,55 +21,67 @@ export default function GroupsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [groups, setGroups] = useState<Group[]>([
-    {
-      id: 1,
-      name: '2D_OD',
-      description: '2D Object Detection group for image analysis',
-      createdDate: '2024-01-15',
-      createdBy: 'John Doe',
-      project: 'TS',
-      scripts: [
-        { script: 'preprocess_images.py', order: 1 },
-        { script: 'yolo_detection.py', order: 2 }
-      ]
-    },
-    {
-      id: 2,
-      name: '3D_OD',
-      description: '3D Object Detection for point cloud processing',
-      createdDate: '2024-01-12',
-      createdBy: 'Jane Smith',
-      project: '42 DOT',
-      scripts: [
-        { script: 'lidar_processor.py', order: 1 },
-        { script: 'pointnet_detection.py', order: 2 }
-      ]
-    },
-    {
-      id: 3,
-      name: '2D_TLD',
-      description: '2D Traffic Light Detection system',
-      createdDate: '2024-01-10',
-      createdBy: 'Bob Johnson',
-      project: 'HUYNDAI',
-      scripts: [
-        { script: 'traffic_light_detector.py', order: 1 }
-      ]
-    },
-    {
-      id: 4,
-      name: '3D_TLD',
-      description: '3D Traffic Light Detection with depth analysis',
-      createdDate: '2024-01-08',
-      createdBy: 'Alice Brown',
-      project: 'INFINIQ',
-      scripts: [
-        { script: 'depth_analysis.py', order: 1 },
-        { script: '3d_traffic_detector.py', order: 2 }
-      ]
-    },
-  ]);
+  const [groups, setGroups] = useState<Group []>([]);
+
+
+  // const loadGroups = async () => {
+  //   try{
+  //     setIsLoading(true);
+  //     setError('');
+  //     const result = await apiService.getGroups();
+  //   }
+  // }
+  
+  //mock data 
+  // const [groups, setGroups] = useState<Group[]>([
+  //   {
+  //     id: 1,
+  //     name: '2D_OD',
+  //     description: '2D Object Detection group for image analysis',
+  //     createdDate: '2024-01-15',
+  //     createdBy: 'John Doe',
+  //     project: 'TS',
+  //     scripts: [
+  //       { script: 'preprocess_images.py', order: 1 },
+  //       { script: 'yolo_detection.py', order: 2 }
+  //     ]
+  //   },
+  //   {
+  //     id: 2,
+  //     name: '3D_OD',
+  //     description: '3D Object Detection for point cloud processing',
+  //     createdDate: '2024-01-12',
+  //     createdBy: 'Jane Smith',
+  //     project: '42 DOT',
+  //     scripts: [
+  //       { script: 'lidar_processor.py', order: 1 },
+  //       { script: 'pointnet_detection.py', order: 2 }
+  //     ]
+  //   },
+  //   {
+  //     id: 3,
+  //     name: '2D_TLD',
+  //     description: '2D Traffic Light Detection system',
+  //     createdDate: '2024-01-10',
+  //     createdBy: 'Bob Johnson',
+  //     project: 'HUYNDAI',
+  //     scripts: [
+  //       { script: 'traffic_light_detector.py', order: 1 }
+  //     ]
+  //   },
+  //   {
+  //     id: 4,
+  //     name: '3D_TLD',
+  //     description: '3D Traffic Light Detection with depth analysis',
+  //     createdDate: '2024-01-08',
+  //     createdBy: 'Alice Brown',
+  //     project: 'INFINIQ',
+  //     scripts: [
+  //       { script: 'depth_analysis.py', order: 1 },
+  //       { script: '3d_traffic_detector.py', order: 2 }
+  //     ]
+  //   },
+  // ]);
 
   const [newGroup, setNewGroup] = useState({
     name: '',

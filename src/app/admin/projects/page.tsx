@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../../lib/apiService';
 
 interface Project {
   id: number;
@@ -11,44 +12,69 @@ interface Project {
   description?: string;
 }
 
+
 export default function ProjectsPage() {
+  // const [state, setState] = useState<type>(initial_value)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 1,
-      name: 'TS',
-      createdDate: '2024-01-15',
-      createdBy: 'John Doe',
-      groups: ['3D_OD', '2D_OD'],
-      description: 'Comprehensive data analytics and visualization platform'
-    },
-    {
-      id: 2,
-      name: '42 DOT',
-      createdDate: '2024-01-10',
-      createdBy: 'Jane Smith',
-      groups: ['2D_OD', '3D_TLD'],
-      description: 'Complete user authentication and management solution'
-    },
-    {
-      id: 3,
-      name: 'HUYNDAI',
-      createdDate: '2024-01-08',
-      createdBy: 'Bob Johnson',
-      groups: ['2D_OD'],
-      description: 'Automated file processing and conversion utilities'
-    },
-    {
-      id: 4,
-      name: 'INFINIQ',
-      createdDate: '2024-01-05',
-      createdBy: 'Alice Brown',
-      groups: ['2D_OD'],
-      description: 'Automated backup and disaster recovery system'
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [error,setError] = useState<string>('')
+
+ // Load users from API
+ useEffect(() => {
+  loadProjects();
+}, []);
+
+  const loadProjects = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      const res = await apiService.getProjects();
+      console.log( 'RES', res)
+    } catch (error) {
+      setError('Failed to load users');
+      console.error('Error loading users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  //mock data
+  // const [projects, setProjects] = useState<Project[]>([
+  //   {
+  //     id: 1,
+  //     name: 'TS',
+  //     createdDate: '2024-01-15',
+  //     createdBy: 'John Doe',
+  //     groups: ['3D_OD', '2D_OD'],
+  //     description: 'Comprehensive data analytics and visualization platform'
+  //   },
+  //   {
+  //     id: 2,
+  //     name: '42 DOT',
+  //     createdDate: '2024-01-10',
+  //     createdBy: 'Jane Smith',
+  //     groups: ['2D_OD', '3D_TLD'],
+  //     description: 'Complete user authentication and management solution'
+  //   },
+  //   {
+  //     id: 3,
+  //     name: 'HUYNDAI',
+  //     createdDate: '2024-01-08',
+  //     createdBy: 'Bob Johnson',
+  //     groups: ['2D_OD'],
+  //     description: 'Automated file processing and conversion utilities'
+  //   },
+  //   {
+  //     id: 4,
+  //     name: 'INFINIQ',
+  //     createdDate: '2024-01-05',
+  //     createdBy: 'Alice Brown',
+  //     groups: ['2D_OD'],
+  //     description: 'Automated backup and disaster recovery system'
+  //   },
+  // ]);
 
   const [newProject, setNewProject] = useState({
     name: '',
