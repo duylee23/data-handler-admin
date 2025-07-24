@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiService, type UploadScriptRequest } from '../../lib/apiService';
+import { apiService, type UploadScriptRequest } from '../../services';
 
 interface ScriptConfig {
   id: number;
@@ -9,6 +9,7 @@ interface ScriptConfig {
   description: string;
   groupType: string;
   destination: string;
+  scriptPath: string;
   createdBy: string;
   updatedBy: string | null;
   createdTime: string;
@@ -19,7 +20,7 @@ interface NewScript {
   file: File | null;
   description: string;
   groupType: string;
-  scriptName: string;
+  name: string;
 }
 
 interface EditScript {
@@ -41,7 +42,7 @@ export default function ScriptsPage() {
   const [scripts, setScripts] = useState<ScriptConfig[]>([]);
   const [newScript, setNewScript] = useState<NewScript>({
     file: null,
-    scriptName: '',
+    name: '',
     description: '',
     groupType: ''
   });
@@ -51,31 +52,6 @@ export default function ScriptsPage() {
     description: '',
     groupType: ''
   });
-
-  const scriptGroups = [
-    'Data Processing',
-    'Analytics',
-    'Backup & Maintenance',
-    'Notifications',
-    'Utilities',
-    'Custom'
-  ];
-
-  // Function to get file type from destination path
-  // const getFileType = (destination: string) => {
-  //   const extension = destination.split('.').pop()?.toLowerCase();
-  //   switch (extension) {
-  //     case '2D': return '2D';
-  //     case '3D': return '3D';
-  //     case 'sh': return 'Shell';
-  //     case 'rb': return 'Ruby';
-  //     case 'php': return 'PHP';
-  //     case 'go': return 'Go';
-  //     case 'java': return 'Java';
-  //     case 'ts': return 'TypeScript';
-  //     default: return 'Unknown';
-  //   }
-  // };
 
   // Function to format date
   const formatDate = (dateString: string) => {
@@ -94,7 +70,7 @@ export default function ScriptsPage() {
     try {
       setIsLoading(true);
       const scriptsData = await apiService.getScripts();
-      setScripts(scriptsData);
+      setScripts(scriptsData?.data);
     } catch (error) {
       console.error('Error fetching scripts:', error);
     } finally {
@@ -117,7 +93,7 @@ export default function ScriptsPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    if (!newScript.file || !newScript.description || !newScript.groupType) {
+    if (!newScript.file || !newScript.description || !newScript.name) {
       console.log(newScript);
       setUploadMessage({ type: 'error', text: 'Please fill in all fields' });
       return;
@@ -130,8 +106,7 @@ export default function ScriptsPage() {
       const uploadData: UploadScriptRequest = {
         file: newScript.file,
         description: newScript.description,
-        groupType: newScript.groupType,
-        scriptName : newScript.scriptName
+        name : newScript.name
       };
 
       console.log(uploadData);
@@ -142,7 +117,7 @@ export default function ScriptsPage() {
         setUploadMessage({ type: 'success', text: result.message });
         // Reset form and close modal after a short delay to show success message
         setTimeout(() => {
-          setNewScript({ file: null, description: '', groupType: '', scriptName: '' });
+          setNewScript({ file: null, description: '', groupType: '', name: '' });
           setIsModalOpen(false);
           setUploadMessage(null);
           // Refresh the scripts list
@@ -164,7 +139,7 @@ export default function ScriptsPage() {
   const handleModalClose = () => {
     if (!isUploading) {
       setIsModalOpen(false);
-      setNewScript({ file: null, description: '', groupType: '', scriptName: '' });
+      setNewScript({ file: null, description: '', groupType: '', name: '' });
       setUploadMessage(null);
     }
   };
@@ -258,7 +233,7 @@ export default function ScriptsPage() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors"
         >
           Add Script
         </button>
@@ -274,7 +249,7 @@ export default function ScriptsPage() {
                   Script
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  Group
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created By
@@ -314,10 +289,10 @@ export default function ScriptsPage() {
                   <tr key={script.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{script.name}</div>
-                        <div className="text-sm text-gray-500">{script.description}</div>
+                        <div className="text-lg font-medium text-gray-900">{script.name}</div>
+                        <div className="text-sm text-gray-500">Description: {script.description}</div>
                         <div className="text-xs text-gray-400 mt-1">
-                          Path: {script.destination}
+                          Path: {script.scriptPath? script.scriptPath : 'None' }
                         </div>
                       </div>
                     </td>
@@ -340,14 +315,14 @@ export default function ScriptsPage() {
                         <button 
                           onClick={() => handleEdit(script)}
                           disabled={isDeleting === script.id}
-                          className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition-colors disabled:opacity-50"
+                          className="cursor-pointer bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition-colors disabled:opacity-50"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => handleDelete(script.id)}
                           disabled={isDeleting === script.id}
-                          className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
+                          className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
                         >
                           {isDeleting === script.id && (
                             <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -406,8 +381,8 @@ export default function ScriptsPage() {
                   Script Name
                 </label>
                 <input
-                  value={newScript.scriptName}
-                  onChange={(e) => setNewScript(prev => ({ ...prev, scriptName: e.target.value }))}
+                  value={newScript.name}
+                  onChange={(e) => setNewScript(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter script name..."
                   disabled={isUploading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
@@ -450,7 +425,7 @@ export default function ScriptsPage() {
               </div>
 
               {/* Group Selection */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Group
                 </label>
@@ -467,7 +442,7 @@ export default function ScriptsPage() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-4">
@@ -560,7 +535,7 @@ export default function ScriptsPage() {
               </div>
 
               {/* Group Selection */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Group
                 </label>
@@ -577,7 +552,7 @@ export default function ScriptsPage() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-4">

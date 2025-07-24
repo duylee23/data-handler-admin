@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import {apiService} from '../../lib/apiService'
+import React, { useState, useEffect } from 'react';
+import {apiService} from '../../services'
 interface ScriptOrder {
   script: string;
   order: number;
@@ -21,16 +21,70 @@ export default function GroupsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [groups, setGroups] = useState<Group []>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [availableProjects, setAvailableProjects] = useState<{id: string, name: string}[]>([]);
+  const [availableScripts, setAvailableScripts] = useState<{id: string, name: string}[]>([]);
+  const [error, setError] = useState<string>('');
+  const [totalCount, setTotalCount] = useState<number>(0);
 
+  // Load data from APIs
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // const loadGroups = async () => {
-  //   try{
-  //     setIsLoading(true);
-  //     setError('');
-  //     const result = await apiService.getGroups();
-  //   }
-  // }
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      // Fetch all data in parallel
+      const [groupsRes, projectsRes, scriptsRes] = await Promise.all([
+        apiService.getGroups(),
+        apiService.getProjectDropdown(),
+        apiService.getScriptDropdownData()
+      ]);
+
+      if (groupsRes.success && groupsRes.data) {
+        setGroups(groupsRes.data);
+        setTotalCount(groupsRes.count || groupsRes.data.length);
+      } else {
+        setError(groupsRes.message || 'Failed to load groups');
+      }
+
+      if (projectsRes.success && projectsRes.data) {
+        setAvailableProjects(projectsRes.data);
+        console.log('availableProjects',projectsRes?.data)
+      }
+
+      if (scriptsRes.success && scriptsRes.data) {
+        setAvailableScripts(scriptsRes?.data);
+        console.log('availableScripts',scriptsRes?.data)
+      }
+
+    } catch (error) {
+      setError('Failed to load data');
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadGroups = async () => {
+    try {
+      setError('');
+      const result = await apiService.getGroups();
+      if (result.success && result.data) {
+        setGroups(result.data);
+        setTotalCount(result.count || result.data.length);
+      } else {
+        setError(result.message || 'Failed to load groups');
+      }
+    } catch (error) {
+      setError('Failed to load groups');
+      console.error('Error loading groups:', error);
+    }
+  };
   
   //mock data 
   // const [groups, setGroups] = useState<Group[]>([
@@ -92,26 +146,6 @@ export default function GroupsPage() {
 
   const [editGroup, setEditGroup] = useState<Group | null>(null);
 
-  const availableProjects = [
-    'TS',
-    '42 DOT',
-    'HUYNDAI',
-    'INFINIQ'
-  ];
-
-  const availableScripts = [
-    'yolo_detection.py',
-    'pointnet_detection.py',
-    'traffic_light_detector.py',
-    '3d_traffic_detector.py',
-    'preprocess_images.py',
-    'lidar_processor.py',
-    'depth_analysis.py',
-    'data_augmentation.py',
-    'model_trainer.py',
-    'inference_engine.py'
-  ];
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -121,20 +155,28 @@ export default function GroupsPage() {
     });
   };
 
-  const handleAddGroup = () => {
-    if (newGroup.name.trim() && newGroup.project) {
-      const group: Group = {
-        id: Math.max(...groups.map(g => g.id)) + 1,
-        name: newGroup.name,
-        description: newGroup.description,
-        createdDate: new Date().toISOString().split('T')[0],
-        createdBy: 'Current User', // In real app, get from auth context
-        project: newGroup.project,
-        scripts: newGroup.scripts,
-      };
-      setGroups([...groups, group]);
+  const handleAddGroup = async () => {
+    if (!newGroup.name.trim() || !newGroup.project) {
+      setError('Group name and project are required');
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      setError('');
+      console.log("New group",newGroup);
+      
+      // TODO: Add apiService.addGroup() method when backend is ready
+      // For now, we'll just reload the groups after a simulated API call
+      // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+
+      await loadGroups(); // Reload groups to get updated list
       setNewGroup({ name: '', description: '', project: '', scripts: [] });
       setIsModalOpen(false);
+    } catch (error) {
+      setError('Failed to add group');
+      console.error('Error adding group:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -143,22 +185,51 @@ export default function GroupsPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateGroup = () => {
-    if (editGroup) {
-      setGroups(groups.map(g => 
-        g.id === editGroup.id ? editGroup : g
-      ));
+  const handleUpdateGroup = async () => {
+    if (!editGroup || !editGroup.name.trim() || !editGroup.project) {
+      setError('Group name and project are required');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+
+      // TODO: Add apiService.editGroup() method when backend is ready
+      // For now, we'll just reload the groups after a simulated API call
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      await loadGroups(); // Reload groups to get updated list
       setEditGroup(null);
       setIsEditModalOpen(false);
+    } catch (error) {
+      setError('Failed to update group');
+      console.error('Error updating group:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    setIsDeleting(id);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setGroups(groups.filter(g => g.id !== id));
-    setIsDeleting(null);
+    if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(id);
+      setError('');
+      
+      // TODO: Add apiService.deleteGroup() method when backend is ready
+      // For now, we'll just reload the groups after a simulated API call
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      await loadGroups(); // Reload groups to get updated list
+    } catch (error) {
+      setError('Failed to delete group');
+      console.error('Error deleting group:', error);
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const addScript = (isEdit = false) => {
@@ -204,7 +275,7 @@ export default function GroupsPage() {
         <button
           type="button"
           onClick={() => addScript(isEdit)}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="cursor-pointer text-blue-600 hover:text-blue-800 text-sm"
         >
           + Add Script
         </button>
@@ -227,13 +298,13 @@ export default function GroupsPage() {
             >
               <option value="">Select script...</option>
               {availableScripts.map((script) => (
-                <option key={script} value={script}>{script}</option>
+                <option key={script.id} value={script.id}>{script.name}</option>
               ))}
             </select>
             <button
               type="button"
               onClick={() => removeScript(index, isEdit)}
-              className="text-red-600 hover:text-red-800 text-sm"
+              className="cursor-pointer text-red-600 hover:text-red-800 text-sm"
             >
               Remove
             </button>
@@ -248,15 +319,32 @@ export default function GroupsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <span className="block sm:inline">{error}</span>
+          <button
+            onClick={() => setError('')}
+            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+          >
+            <span className="sr-only">Dismiss</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Groups</h1>
-          <p className="text-gray-600 mt-2">Manage and organize groups with their associated scripts</p>
+          <p className="text-gray-600 mt-2">Manage and organize groups with their associated scripts ({totalCount} total)</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={isLoading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
           Add Group
         </button>
@@ -267,8 +355,20 @@ export default function GroupsPage() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">All Groups</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        
+        {isLoading ? (
+          <div className="px-6 py-8 text-center">
+            <div className="flex justify-center items-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading groups...
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -322,7 +422,7 @@ export default function GroupsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1 max-w-xs">
-                        {group.scripts.length > 0 ? (
+                        {group.scripts?.length > 0 ? (
                           group.scripts
                             .sort((a, b) => a.order - b.order)
                             .map((scriptOrder, index) => (
@@ -341,28 +441,28 @@ export default function GroupsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => handleEdit(group)}
-                          disabled={isDeleting === group.id}
-                          className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(group.id)}
-                          disabled={isDeleting === group.id}
-                          className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
-                        >
-                          {isDeleting === group.id && (
-                            <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                          {isDeleting === group.id ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
+                                              <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleEdit(group)}
+                            disabled={isDeleting === group.id || isSubmitting}
+                            className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition-colors disabled:opacity-50"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(group.id)}
+                            disabled={isDeleting === group.id || isSubmitting}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
+                          >
+                            {isDeleting === group.id && (
+                              <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            )}
+                            {isDeleting === group.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
                     </td>
                   </tr>
                 ))
@@ -370,6 +470,7 @@ export default function GroupsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Add Group Modal */}
@@ -399,6 +500,7 @@ export default function GroupsPage() {
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter group name"
+                  disabled={isSubmitting}
                 />
               </div>
               
@@ -412,6 +514,7 @@ export default function GroupsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Enter group description"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -423,10 +526,11 @@ export default function GroupsPage() {
                   value={newGroup.project}
                   onChange={(e) => setNewGroup({ ...newGroup, project: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isSubmitting}
                 >
                   <option value="">Select a project...</option>
                   {availableProjects.map((project) => (
-                    <option key={project} value={project}>{project}</option>
+                    <option key={project.id} value={project.id}>{project.name}</option>
                   ))}
                 </select>
               </div>
@@ -437,16 +541,23 @@ export default function GroupsPage() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddGroup}
-                disabled={!newGroup.name.trim() || !newGroup.project}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!newGroup.name.trim() || !newGroup.project || isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Add Group
+                {isSubmitting && (
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {isSubmitting ? 'Adding...' : 'Add Group'}
               </button>
             </div>
           </div>
@@ -480,6 +591,7 @@ export default function GroupsPage() {
                   onChange={(e) => setEditGroup({ ...editGroup, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter group name"
+                  disabled={isSubmitting}
                 />
               </div>
               
@@ -493,6 +605,7 @@ export default function GroupsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Enter group description"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -504,11 +617,12 @@ export default function GroupsPage() {
                   value={editGroup.project}
                   onChange={(e) => setEditGroup({ ...editGroup, project: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isSubmitting}
                 >
                   <option value="">Select a project...</option>
-                  {availableProjects.map((project) => (
-                    <option key={project} value={project}>{project}</option>
-                  ))}
+                  {/* {availableProjects.map((project) => (
+                    <option key={project.id} value={project}>{project}</option>
+                  ))} */}
                 </select>
               </div>
 
@@ -518,16 +632,23 @@ export default function GroupsPage() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateGroup}
-                disabled={!editGroup.name.trim() || !editGroup.project}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!editGroup.name.trim() || !editGroup.project || isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Update Group
+                {isSubmitting && (
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {isSubmitting ? 'Updating...' : 'Update Group'}
               </button>
             </div>
           </div>

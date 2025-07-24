@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../lib/apiService';
+import { apiService } from '../../services';
 
 interface User {
   id: number;

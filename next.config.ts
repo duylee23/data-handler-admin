@@ -12,9 +12,13 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:8081/api/project/:path*',
       },
       {
-        source: '/script/:path*',
-        destination: 'http://localhost:8081/script/:path*',
+        source: '/api/script/:path*',
+        destination: 'http://localhost:8081/api/script/:path*',
       },
+      {
+        source: '/api/group/:path*',
+        destination: 'http://localhost:8081/api/group/:path*',
+      }
     ];
   },
   async headers() {
